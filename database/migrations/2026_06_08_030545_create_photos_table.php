@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('photos', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('album_id')->constrained()->onDelete('cascade');
-            $table->string('url');
-            $table->string('caption')->nullable();
-            $table->timestamps();
-        });
+    Schema::create('photos', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('album_id')->constrained()->onDelete('cascade'); // Si se borra el álbum, se borran sus fotos
+        $table->string('title');
+        $table->string('path'); // Ruta del archivo guardado en el servidor
+        $table->timestamps();
+    });
     }
 
     /**

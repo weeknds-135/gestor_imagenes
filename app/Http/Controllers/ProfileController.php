@@ -3,49 +3,53 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateProfileRequest;
+use App\Models\User; // <-- Añadimos esto explícitamente para que VS Code reconozca el tipo de usuario
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Redirect;
-use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
-    /**
-     * Display the user's profile form.
-     */
-    public function edit(Request $request): View
+    /** GET /profile — Mostrar formulario */
+    public function edit()
     {
-        return view('profile.edit', [
-            'user' => $request->user(),
-        ]);
+        return view('profile.edit', ['user' => Auth::user()]);
     }
 
-    /**
-     * Update the user's profile information.
-     */
+    /** PUT /profile — Guardar cambios del perfil */
     public function update(UpdateProfileRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        /** @var User $user */
+        $user = Auth::user(); // <-- Este comentario le dice a VS Code: "Trata a esta variable como el modelo User"
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        // Rellena el nombre y el correo con lo que viene del formulario
+        $user->fill($request->only('name', 'email'));
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
         }
 
-        $request->user()->save();
+        // Si el usuario escribió una nueva contraseña, la encripta y la guarda
+        if ($request->filled('password')) {
+            $user->password = Hash::make($request->password);
+        }
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        $user->save();
+
+        return redirect()->route('profile.edit')
+                         ->with('success', 'Perfil actualizado correctamente.');
     }
 
-    /**
-     * Delete the user's account.
-     */
+    /** DELETE /profile — Eliminar cuenta */
     public function destroy(Request $request): RedirectResponse
     {
         $request->validateWithBag('userDeletion', [
             'password' => ['required', 'current_password'],
         ]);
 
+        /** @var User $user */
         $user = $request->user();
 
         Auth::logout();
